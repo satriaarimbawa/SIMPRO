@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 namespace App\Http\Controllers;
 
@@ -103,7 +103,7 @@ class PembayaranController extends Controller
             'lampiran'        => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
-        $termin      = Termin::findOrFail($terminId);
+        $termin = Termin::with('spk')->findOrFail($terminId);
         $selisih     = $termin->nilai_termin - $request->nilai_diterima;
         $statusBayar = $selisih == 0 ? 'lunas' : 'lunas_selisih';
 
@@ -118,15 +118,24 @@ class PembayaranController extends Controller
 
         // Simpan lampiran dokumen jika ada
         if ($request->hasFile('lampiran')) {
-            $file     = $request->file('lampiran');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $path     = $file->storeAs('lampiran', $filename, 'public');
+            $file = $request->file('lampiran');
+
+            // Sanitasi no_spk agar aman sebagai nama folder Windows
+            // Ganti / dan spasi → underscore, hapus karakter tidak valid lainnya
+            $noSpkSanitasi = preg_replace('/[\/\\\\ ]/', '_', $termin->spk->no_spk);
+            $noSpkSanitasi = preg_replace('/[:\*\?"<>\|]/', '', $noSpkSanitasi);
+
+            // Struktur folder: lampiran/{no_spk}/Termin-{no_termin}/
+            $folder = 'lampiran/' . $noSpkSanitasi . '/Termin-' . $termin->no_termin;
+
+            // Simpan dengan nama file asli dari komputer pengguna
+            $path = $file->storeAs($folder, $file->getClientOriginalName(), 'public');
 
             \App\Models\LampiranDokumen::create([
-                'termin_id'     => $termin->id,
-                'jenis_dokumen' => $request->jenis_dokumen ?? 'lainnya',
-                'nama_file'     => $file->getClientOriginalName(),
-                'file'          => $path,
+                'termin_id'      => $termin->id,
+                'jenis_dokumen'  => $request->jenis_dokumen ?? 'lainnya',
+                'nama_file'      => $file->getClientOriginalName(),
+                'file'           => $path,
                 'tanggal_unggah' => now(),
             ]);
         }
