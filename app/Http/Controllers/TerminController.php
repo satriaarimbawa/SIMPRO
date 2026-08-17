@@ -409,12 +409,20 @@ class TerminController extends Controller
             'file_lampiran' => 'required|file|max:10240', // max 10MB
         ]);
 
-        $termin = Termin::findOrFail($id);
+        $termin = Termin::with('spk')->findOrFail($id);
 
         if ($request->hasFile('file_lampiran')) {
             $file = $request->file('file_lampiran');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('lampiran', $filename, 'public');
+            
+            // Sanitasi no_spk agar aman sebagai nama folder Windows
+            $noSpkSanitasi = preg_replace('/[\/\\\\ ]/', '_', $termin->spk->no_spk);
+            $noSpkSanitasi = preg_replace('/[:\*\?"<>\|]/', '', $noSpkSanitasi);
+
+            // Struktur folder: lampiran/{no_spk}/Termin-{no_termin}/
+            $folder = 'lampiran/' . $noSpkSanitasi . '/Termin-' . $termin->no_termin;
+
+            // Simpan dengan nama file asli dari komputer pengguna
+            $path = $file->storeAs($folder, $file->getClientOriginalName(), 'public');
 
             \App\Models\LampiranDokumen::create([
                 'termin_id' => $termin->id,
