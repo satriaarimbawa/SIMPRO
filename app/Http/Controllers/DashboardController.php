@@ -6,10 +6,18 @@ use App\Models\Spk;
 use App\Models\Termin;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index()
+    /**
+     * Menampilkan halaman Dashboard Utama.
+     *
+     * Mengagregasi data KPI: total SPK aktif, termin menunggu konfirmasi,
+     * termin lunas bulan ini, total terbayar/belum, deadline terdekat,
+     * dan daftar SPK terbaru.
+     */
+    public function index(): View
     {
         $totalSpkAktif = Spk::where('status', '!=', 'selesai')->count();
         $menungguKonfirmasi = Termin::where('status', 'menunggu_konfirmasi')->count();

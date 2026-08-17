@@ -9,6 +9,10 @@ use Illuminate\Http\Request;
 
 class TerminController extends Controller
 {
+    /**
+     * Memperbarui status termin (misal: belum_kirim -> terkirim -> lunas).
+     * Dipanggil via form dropdown di halaman detail SPK / Arsip.
+     */
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
@@ -24,12 +28,23 @@ class TerminController extends Controller
         return back()->with('success', 'Status termin berhasil diperbarui.');
     }
 
+    /**
+     * Menampilkan halaman kanvas preview & form input Surat Jalan.
+     * Template yang ditampilkan menyesuaikan perusahaan (WTM, WKB, WAM).
+     */
     public function suratJalan($id)
     {
         $termin = Termin::with('spk.perusahaan', 'suratJalan')->findOrFail($id);
         return view('termin.surat-jalan', compact('termin'));
     }
 
+    /**
+     * Menyimpan data Surat Jalan ke database dan mengunduh file Excel.
+     *
+     * Menggunakan updateOrCreate agar data bisa diupdate jika sudah pernah disimpan.
+     * Template Excel yang di-generate menyesuaikan perusahaan (WTM, WKB, WAM).
+     * Untuk WTM dan WAM, ditambahkan 6 baris kosong di atas untuk kop surat bawaan kertas.
+     */
     public function storeSuratJalan(Request $request, $id)
     {
         $request->validate([
